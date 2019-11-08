@@ -2,8 +2,10 @@ FROM ubuntu:bionic
 
 ARG LLVM_VERSION
 ENV LLVM_VERSION=$LLVM_VERSION
+ARG BASE
+ENV BASE=$BASE
 
-RUN apt-get update && apt-get install -y curl gnupg &&\
+RUN apt-get update && apt-get install -y curl gnupg apt-utils ubuntu-dbgsym-keyring && \
     llvmRepository="\n\
 deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic main\n\
 deb-src http://apt.llvm.org/bionic/ llvm-toolchain-bionic main\n\
@@ -12,7 +14,12 @@ deb-src http://apt.llvm.org/bionic/ llvm-toolchain-bionic-${LLVM_VERSION} main\n
     echo $llvmRepository >> /etc/apt/sources.list && \
     curl -L https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add - && \
     apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 4052245BD4284CDD && \
-    echo "deb https://repo.iovisor.org/apt/bionic bionic main" | tee /etc/apt/sources.list.d/iovisor.list
+    echo "deb https://repo.iovisor.org/apt/bionic bionic main" | tee /etc/apt/sources.list.d/iovisor.list && \
+    dbgRepository="\n\
+deb http://ddebs.ubuntu.com ${BASE} main restricted universe multiverse\n\
+deb http://ddebs.ubuntu.com ${BASE}-updates main restricted universe multiverse\n\
+deb http://ddebs.ubuntu.com ${BASE}-proposed main restricted universe multiverse\n" && \
+    echo $dbgRepository > /etc/apt/sources.list.d/ddebs.list
 
 RUN apt-get update && apt-get install -y \
       bison \
@@ -32,7 +39,8 @@ RUN apt-get update && apt-get install -y \
       llvm-${LLVM_VERSION}-runtime \
       libllvm${LLVM_VERSION} \
       systemtap-sdt-dev \
-      python3
+      python3 \
+      linux-image-$(uname -r)-dbgsym
 
 COPY build.sh /build.sh
 RUN chmod 755 /build.sh
