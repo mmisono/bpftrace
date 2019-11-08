@@ -304,15 +304,21 @@ public:
               location loc=location())
     : Node(loc), provider(probetypeName(provider)), target(target), ns(ns), func(func), need_expansion(need_expansion) { }
   AttachPoint(const std::string &provider,
-              const std::string &target,
+              const std::string &str,
               uint64_t val,
               location loc=location())
-    : Node(loc), provider(probetypeName(provider)), target(target), need_expansion(true)
+    : Node(loc), provider(probetypeName(provider)), need_expansion(true)
   {
-    if (provider == "uprobe")
+    if (provider == "uprobe") {
+      target = str;
       address = val;
-    else
+    } else if (provider == "kprobe") {
+      func = str;
+      func_offset = val;
+    } else {
+      target = str;
       freq = val;
+    }
   }
   AttachPoint(const std::string &provider,
               const std::string &target,

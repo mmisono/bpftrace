@@ -674,7 +674,7 @@ Some probe types allow wildcards to match multiple probes, eg, `kprobe:vfs_*`. Y
 Syntax:
 
 ```
-kprobe:function_name
+kprobe:function_name[+offset]
 kretprobe:function_name
 ```
 
@@ -692,6 +692,41 @@ sleep by 27662
 sleep by 3669
 ^C
 ```
+
+It's also possible to specify offset within the probed function:
+
+```
+# gdb -q /usr/lib/debug/boot/vmlinux-`uname -r` --ex 'disassemble do_sys_open'
+Reading symbols from /usr/lib/debug/boot/vmlinux-5.0.0-32-generic...done.
+Dump of assembler code for function do_sys_open:
+   0xffffffff812b2ed0 <+0>:     callq  0xffffffff81c01820 <__fentry__>
+   0xffffffff812b2ed5 <+5>:     push   %rbp
+   0xffffffff812b2ed6 <+6>:     mov    %rsp,%rbp
+   0xffffffff812b2ed9 <+9>:     push   %r15
+...
+# bpftrace -e 'kprobe:do_sys_open+9 { printf("in here\n"); }'
+Attaching 1 probe...
+in here
+...
+```
+
+The address is being checked using vmlinux if it's aligned with instruction boundaries.
+If it's not, we fail to add it:
+```
+# bpftrace -e 'kprobe:do_sys_open+1 { printf("in here\n"); }'
+Attaching 1 probe...
+Could not add kprobe into middle of instruction: /usr/lib/debug/boot/vmlinux-5.0.0-32-generic:do_sys_open+1
+```
+
+Unless you use --unsafe option:
+
+```
+# bpftrace -e 'kprobe:do_sys_open+1 { printf("in here\n"); }' --unsafe
+Attaching 1 probe...
+Unsafe uprobe in the middle of the instruction: /usr/lib/debug/boot/vmlinux-5.0.0-32-generic:do_sys_open+1
+```
+
+The default vmlinux path can be overridden using the environment variable `BPFTRACE_VMLINUX`.
 
 ## 2. `kprobe`/`kretprobe`: Dynamic Tracing, Kernel-Level Arguments
 
