@@ -413,6 +413,9 @@ void AttachedProbe::resolve_offset_kprobe(bool safe_mode)
   uint64_t func_offset = probe_.func_offset;
   offset_ = func_offset;
 
+  if (func_offset == 0)
+    return;
+
   sym.name = symbol;
   option.use_debug_file  = 0;
   option.use_symbol_type = 0xffffffff;
@@ -428,9 +431,6 @@ void AttachedProbe::resolve_offset_kprobe(bool safe_mode)
     ss << sym.size;
     throw std::runtime_error("Offset outside the function bounds ('" + symbol + "' size is " + ss.str() + ")");
   }
-
-  if (func_offset == 0)
-    return;
 
   uint64_t sym_offset = resolve_offset(path, probe_.attach_point, probe_.loc);
 
