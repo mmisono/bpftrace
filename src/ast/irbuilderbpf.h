@@ -57,6 +57,8 @@ public:
   CallInst   *CreateGetRandom();
   CallInst   *CreateGetStackId(Value *ctx, bool ustack, StackType stack_type);
   CallInst   *CreateGetJoinMap(Value *ctx);
+  CallInst   *CreateStackSave();
+  void        CreateStackRestore(Value *stack);
   void        CreateGetCurrentComm(AllocaInst *buf, size_t size);
   void        CreatePerfEventOutput(Value *ctx, Value *data, size_t size);
   void        CreateSignal(Value *sig);

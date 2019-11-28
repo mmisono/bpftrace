@@ -35,13 +35,13 @@ AllocaInst *IRBuilderBPF::CreateAllocaBPF(llvm::Type *ty, llvm::Value *arraysize
   Function *parent = GetInsertBlock()->getParent();
   BasicBlock &entry_block = parent->getEntryBlock();
 
-  auto ip = saveIP();
-  if (entry_block.empty())
-    SetInsertPoint(&entry_block);
-  else
-    SetInsertPoint(&entry_block.front());
+  //auto ip = saveIP();
+  //if (entry_block.empty())
+  //  SetInsertPoint(&entry_block);
+  //else
+  //  SetInsertPoint(&entry_block.front());
   AllocaInst *alloca = CreateAlloca(ty, arraysize, name);
-  restoreIP(ip);
+  //restoreIP(ip);
 
   CreateLifetimeStart(alloca);
   return alloca;
@@ -663,6 +663,18 @@ void IRBuilderBPF::CreateSignal(Value *sig)
   std::cerr << "BPF_FUNC_signal is not available for your kernel version" << std::endl;
   abort();
 #endif
+}
+
+CallInst *IRBuilderBPF::CreateStackSave()
+{
+  Function *stacksave_func = Intrinsic::getDeclaration(&module_, Intrinsic::stacksave);
+  return CreateCall(stacksave_func, {}, "stacksave");
+}
+
+void IRBuilderBPF::CreateStackRestore(Value *stack)
+{
+  Function *stackrestore_func = Intrinsic::getDeclaration(&module_, Intrinsic::stackrestore);
+  CreateCall(stackrestore_func, {stack});
 }
 
 } // namespace ast

@@ -1162,6 +1162,8 @@ void CodegenLLVM::visit(AssignMapStatement &assignment)
   if (!expr_) // Some functions do the assignments themselves
     return;
 
+  Value *stack = b_.CreateStackSave();
+
   Value *val, *expr;
   expr = expr_;
   AllocaInst *key = getMapKey(map);
@@ -1206,6 +1208,7 @@ void CodegenLLVM::visit(AssignMapStatement &assignment)
   b_.CreateLifetimeEnd(key);
   if (!assignment.expr->is_variable)
     b_.CreateLifetimeEnd(val);
+  b_.CreateStackRestore(stack);
 }
 
 void CodegenLLVM::visit(AssignVarStatement &assignment)
