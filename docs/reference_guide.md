@@ -1959,6 +1959,7 @@ Tracing block I/O sizes > 0 bytes
 - `signal(char[] signal | u32 signal)` - Send a signal to the current task
 - `strncmp(char *s1, char *s2, int length)` - Compare first n characters of two strings
 - `override(u64 rc)` - Override return value
+- `path(struct path *path)` - Returns full path referenced by struct path pointer in argument
 
 Some of these are asynchronous: the kernel queues the event, but some time later (milliseconds) it is
 processed in user-space. The asynchronous actions are: `printf()`, `time()`, and `join()`. Both `ksym()`
@@ -2701,6 +2702,25 @@ Attaching 1 probe...
 # bpftrace -e 'BEGIN { $x = 3; printf("%d\n", sizeof($x)); }'
 Attaching 1 probe...
 8
+
+
+## 23. `path()`: Returns full path referenced by struct path pointer in argument
+
+Syntax: `path(struct path *path)`
+# bpftrace  -e 'kfunc:filp_close { printf("%s\n", path(args->filp->f_path)); }'
+Attaching 1 probe...
+/proc/sys/net/ipv6/conf/eno2/disable_ipv6
+/proc/sys/net/ipv6/conf/eno2/use_tempaddr
+socket:[23276]
+/proc/sys/net/ipv6/conf/eno2/disable_ipv6
+socket:[17655]
+/sys/devices/pci0000:00/0000:00:1c.5/0000:04:00.1/net/eno2/type
+socket:[38745]
+/proc/sys/net/ipv6/conf/eno2/disable_ipv6
+
+# bpftrace  -e 'kretfunc:dentry_open { printf("%s\n", path(retval->f_path)); }'
+Attaching 1 probe...
+/dev/pts/1 -> /dev/pts/1
 ```
 
 ## 23. `print()`: Print Value
