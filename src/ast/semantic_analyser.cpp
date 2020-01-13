@@ -1344,7 +1344,8 @@ void SemanticAnalyser::visit(AssignMapStatement &assignment)
   assign_map_type(*assignment.map, assignment.expr->type);
 
   const std::string &map_ident = assignment.map->ident;
-  if (assignment.expr->type.type == Type::cast)
+  auto type = assignment.expr->type.type;
+  if (type == Type::cast)
   {
     std::string cast_type = assignment.expr->type.cast_type;
     std::string curr_cast_type = map_val_[map_ident].cast_type;
@@ -1360,6 +1361,10 @@ void SemanticAnalyser::visit(AssignMapStatement &assignment)
       map_val_[map_ident].cast_type = cast_type;
       map_val_[map_ident].is_internal = true;
     }
+  }
+  else if (type == Type::ctx)
+  {
+    error("Storing context in the map is not supported", assignment.loc);
   }
 }
 
