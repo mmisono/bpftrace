@@ -38,6 +38,7 @@ enum class Type
   inet,
   stack_mode,
   array,
+  ctx,
 };
 
 std::ostream &operator<<(std::ostream &os, Type type);
