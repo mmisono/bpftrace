@@ -54,6 +54,7 @@ void usage()
   std::cerr << "    -c 'CMD'       run CMD and enable USDT probes on resulting process" << std::endl;
   std::cerr << "    --unsafe       allow unsafe builtin functions" << std::endl;
   std::cerr << "    -v             verbose messages" << std::endl;
+  std::cerr << "    --info         report features" << std::endl;
   std::cerr << "    -V, --version  bpftrace version" << std::endl << std::endl;
   std::cerr << "ENVIRONMENT:" << std::endl;
   std::cerr << "    BPFTRACE_STRLEN           [default: 64] bytes on BPF stack per str()" << std::endl;
@@ -135,12 +136,13 @@ int main(int argc, char *argv[])
 
   const char* const short_options = "dbB:f:e:hlp:vc:Vo:I:";
   option long_options[] = {
-    option{"help", no_argument, nullptr, 'h'},
-    option{"version", no_argument, nullptr, 'V'},
-    option{"unsafe", no_argument, nullptr, 'u'},
-    option{"btf", no_argument, nullptr, 'b'},
-    option{"include", required_argument, nullptr, '#'},
-    option{nullptr, 0, nullptr, 0},  // Must be last
+    option{ "help", no_argument, nullptr, 'h' },
+    option{ "version", no_argument, nullptr, 'V' },
+    option{ "unsafe", no_argument, nullptr, 'u' },
+    option{ "btf", no_argument, nullptr, 'b' },
+    option{ "include", required_argument, nullptr, '#' },
+    option{ "info", no_argument, nullptr, 2000 },
+    option{ nullptr, 0, nullptr, 0 }, // Must be last
   };
   std::vector<std::string> include_dirs;
   std::vector<std::string> include_files;
@@ -149,6 +151,9 @@ int main(int argc, char *argv[])
   {
     switch (c)
     {
+      case 2000:
+        std::cerr << BPFfeature().report();
+        return 1;
       case 'o':
         output_file = optarg;
         break;
