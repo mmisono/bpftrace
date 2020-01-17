@@ -10,6 +10,7 @@
 
 #include "ast.h"
 #include "attached_probe.h"
+#include "bpffeature.h"
 #include "btf.h"
 #include "imap.h"
 #include "output.h"
@@ -171,6 +172,7 @@ protected:
   std::vector<Probe> special_probes_;
 
 private:
+  BPFfeature features;
   std::vector<std::unique_ptr<AttachedProbe>> attached_probes_;
   std::vector<std::unique_ptr<AttachedProbe>> special_attached_probes_;
   void* ksyms_{nullptr};

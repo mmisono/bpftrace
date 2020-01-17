@@ -1,7 +1,8 @@
 #pragma once
 
-#include "gmock/gmock.h"
+#include "bpffeature.h"
 #include "bpftrace.h"
+#include "gmock/gmock.h"
 
 namespace bpftrace {
 namespace test {
@@ -26,6 +27,15 @@ public:
 
 std::unique_ptr<MockBPFtrace> get_mock_bpftrace();
 std::unique_ptr<MockBPFtrace> get_strict_mock_bpftrace();
+
+class MockBPFfeature : public BPFfeature
+{
+public:
+  MockBPFfeature()
+  {
+    has_loop_ = has_signal_ = has_get_current_cgroup_id_ = true;
+  };
+};
 
 } // namespace test
 } // namespace bpftrace

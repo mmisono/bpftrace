@@ -1,10 +1,11 @@
-#include "gmock/gmock.h"
-#include "gtest/gtest.h"
+#include "semantic_analyser.h"
+#include "bpffeature.h"
 #include "bpftrace.h"
 #include "clang_parser.h"
 #include "driver.h"
 #include "mocks.h"
-#include "semantic_analyser.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace bpftrace {
 namespace test {
@@ -29,7 +30,8 @@ void test_for_warning(
 
   ASSERT_EQ(driver.parse_str(input), 0);
   std::stringstream out;
-  ast::SemanticAnalyser semantics(driver.root_, bpftrace, out);
+  MockBPFfeature feature;
+  ast::SemanticAnalyser semantics(driver.root_, bpftrace, feature, out);
   semantics.analyse();
   if (invert)
     EXPECT_THAT(out.str(), Not(HasSubstr(warning)));
@@ -63,7 +65,8 @@ void test(
 
   ASSERT_EQ(driver.parse_str(input), 0);
   std::stringstream out;
-  ast::SemanticAnalyser semantics(driver.root_, bpftrace, out);
+  MockBPFfeature feature = MockBPFfeature();
+  ast::SemanticAnalyser semantics(driver.root_, bpftrace, feature, out);
   std::stringstream msg;
   msg << "\nInput:\n" << input << "\n\nOutput:\n";
   EXPECT_EQ(expected_result, semantics.analyse()) << msg.str() + out.str();
@@ -101,9 +104,7 @@ TEST(semantic_analyser, builtin_variables)
   // Just check that each builtin variable exists.
   test("kprobe:f { pid }", 0);
   test("kprobe:f { tid }", 0);
-  #ifdef HAVE_GET_CURRENT_CGROUP_ID
-    test("kprobe:f { cgroup }", 0);
-  #endif
+  test("kprobe:f { cgroup }", 0);
   test("kprobe:f { uid }", 0);
   test("kprobe:f { username }", 0);
   test("kprobe:f { gid }", 0);
