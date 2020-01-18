@@ -232,7 +232,7 @@ void CodegenLLVM::visit(Builtin &builtin)
     }
     expr_ = b_.getInt64(builtin.probe_id);
   }
-  else if (builtin.ident == "args")
+  else if (builtin.ident == "args" || builtin.ident == "ctx")
   {
     expr_ = ctx_;
   }
@@ -244,11 +244,6 @@ void CodegenLLVM::visit(Builtin &builtin)
       abort();
     }
     expr_ = b_.getInt32(cpid);
-  }
-  else if (builtin.ident == "ctx")
-  {
-    // undocumented builtin: for debugging
-    expr_ = ctx_;
   }
   else
   {
@@ -1049,7 +1044,7 @@ void CodegenLLVM::visit(Unop &unop)
         abort();
     }
   }
-  else if (type.type == Type::cast)
+  else if (type.type == Type::cast || type.type == Type::ctx)
   {
     switch (unop.op) {
       case bpftrace::Parser::token::MUL:
@@ -1129,7 +1124,7 @@ void CodegenLLVM::visit(Ternary &ternary)
 void CodegenLLVM::visit(FieldAccess &acc)
 {
   SizedType &type = acc.expr->type;
-  assert(type.type == Type::cast);
+  assert(type.type == Type::cast || type.type == Type::ctx);
   acc.expr->accept(*this);
 
   std::string cast_type = type.is_tparg ? tracepoint_struct_ : type.cast_type;
@@ -1171,6 +1166,7 @@ void CodegenLLVM::visit(FieldAccess &acc)
     // so expr_ will contain an external pointer to the start of the struct
 
     Value *src = b_.CreateAdd(expr_, b_.getInt64(field.offset));
+    llvm::Type *field_ty = b_.GetType(field.type);
 
     if (field.type.type == Type::cast && !field.type.is_pointer)
     {
@@ -1196,20 +1192,39 @@ void CodegenLLVM::visit(FieldAccess &acc)
     else if (field.type.type == Type::string)
     {
       AllocaInst *dst = b_.CreateAllocaBPF(field.type, type.cast_type + "." + acc.field);
-      b_.CreateProbeRead(dst, field.type.size, src);
+      if (type.type == Type::ctx)
+        b_.CREATE_MEMCPY(dst,
+                         b_.CreateIntToPtr(src, field_ty->getPointerTo()),
+                         field.type.size,
+                         1);
+      else
+        b_.CreateProbeRead(dst, field.type.size, src);
       expr_ = dst;
     }
     else if (field.type.type == Type::integer && field.is_bitfield)
     {
-      AllocaInst *dst = b_.CreateAllocaBPF(field.type, type.cast_type + "." + acc.field);
-      // memset so verifier doesn't complain about reading uninitialized stack
-      b_.CreateMemSet(dst, b_.getInt8(0), field.type.size, 1);
-      b_.CreateProbeRead(dst, field.bitfield.read_bytes, src);
-      Value *raw = b_.CreateLoad(dst);
+      Value *raw;
+      if (type.type == Type::ctx)
+        raw = b_.CreateLoad(b_.CreateIntToPtr(src, field_ty->getPointerTo()));
+      else
+      {
+        AllocaInst *dst = b_.CreateAllocaBPF(field.type,
+                                             type.cast_type + "." + acc.field);
+        // memset so verifier doesn't complain about reading uninitialized stack
+        b_.CreateMemSet(dst, b_.getInt8(0), field.type.size, 1);
+        b_.CreateProbeRead(dst, field.bitfield.read_bytes, src);
+        raw = b_.CreateLoad(dst);
+        b_.CreateLifetimeEnd(dst);
+      }
       Value *shifted = b_.CreateLShr(raw, field.bitfield.access_rshift);
       Value *masked = b_.CreateAnd(shifted, field.bitfield.mask);
       expr_ = masked;
-      b_.CreateLifetimeEnd(dst);
+    }
+    else if (type.type == Type::ctx &&
+             (field.type.type == Type::integer ||
+              (field.type.type == Type::cast && field.type.is_pointer)))
+    {
+      expr_ = b_.CreateLoad(b_.CreateIntToPtr(src, field_ty->getPointerTo()));
     }
     else
     {
@@ -1234,11 +1249,20 @@ void CodegenLLVM::visit(ArrayAccess &arr)
   index = b_.CreateIntCast(expr_, b_.getInt64Ty(), arr.expr->type.is_signed);
   offset = b_.CreateMul(index, b_.getInt64(type.pointee_size));
 
-  AllocaInst *dst = b_.CreateAllocaBPF(SizedType(Type::integer, type.pointee_size), "array_access");
   Value *src = b_.CreateAdd(array, offset);
-  b_.CreateProbeRead(dst, type.pointee_size, src);
-  expr_ = b_.CreateLoad(dst);
-  b_.CreateLifetimeEnd(dst);
+  auto stype = SizedType(Type::integer, type.pointee_size);
+  if (arr.expr->type.type == Type::ctx)
+  {
+    auto ty = b_.GetType(stype);
+    expr_ = b_.CreateLoad(b_.CreateIntToPtr(src, ty->getPointerTo()));
+  }
+  else
+  {
+    AllocaInst *dst = b_.CreateAllocaBPF(stype, "array_access");
+    b_.CreateProbeRead(dst, type.pointee_size, src);
+    expr_ = b_.CreateLoad(dst);
+    b_.CreateLifetimeEnd(dst);
+  }
 }
 
 void CodegenLLVM::visit(Cast &cast)
