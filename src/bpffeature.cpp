@@ -72,9 +72,19 @@ static bool detect_signal(void)
   return try_load("test_signal", BPF_PROG_TYPE_KPROBE, insns, sizeof(insns));
 }
 
+static bool detect_has_btf_dump(void)
+{
+#ifdef HAVE_LIBBPF_BTF_DUMP
+  return true;
+#else
+  return false;
+#endif
+}
+
 BPFfeature::BPFfeature(void)
 {
   has_loop_ = detect_loop();
+  has_btf_dump_ = detect_has_btf_dump();
   has_signal_ = detect_signal();
   has_get_current_cgroup_id_ = detect_get_current_cgroup_id();
 }
@@ -90,7 +100,9 @@ std::string BPFfeature::report(void)
       << std::endl
       << "Kernel features" << std::endl
       << "  Loop support: " << to_str(has_loop()) << std::endl
-      << std::endl;
+      << std::endl
+      << "BTF support" << std::endl
+      << "  btf_dump: " << to_str(has_btf_dump()) << std::endl;
   return buf.str();
 }
 

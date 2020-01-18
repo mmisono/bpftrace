@@ -12,6 +12,10 @@ public:
   {
     return has_loop_;
   };
+  bool has_btf_dump(void)
+  {
+    return has_btf_dump_;
+  };
   bool has_helper_send_signal(void)
   {
     return has_signal_;
@@ -24,6 +28,7 @@ public:
 
 protected:
   bool has_loop_;
+  bool has_btf_dump_;
 
   /* Helpers */
   bool has_signal_;
