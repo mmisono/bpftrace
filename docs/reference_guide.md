@@ -1334,6 +1334,7 @@ bpftrace -e 'watchpoint::0x10000000:8:rw { printf("hit!\n"); }' -c ~/binary
 - `cgroup` - Cgroup ID of the current process
 - `cpid` - Child pid(u32), only valid with the `-c command` flag
 - `$1`, `$2`, ..., `$N`, `$#`. - Positional parameters for the bpftrace program
+- `ctx` - BPF program context
 
 Many of these are discussed in other sections (use search).
 
@@ -1657,6 +1658,19 @@ Tracing block I/O sizes > 0 bytes
 [256K, 512K)           0 |                                                    |
 [512K, 1M)             1 |                                                    |
 ```
+
+## 10. `ctx`: BPF program context
+
+This is a context of a BPF program (the argument of the program).
+The below table shows the information about a context for each probe type.
+
+probe type                                        | context
+--------------------------------------------------|------------------------------
+u(ret)probe, k(ret)probe, usdt                    | `struct pt_regs`
+tracepoint                                        | tracepoint arguments (`args`)
+profile, interval, software, hardware, watchpoint | `struct bpf_perf_event_data`
+
+Note that you can use `regs()` to access registers. Use `args` instead of `ctx` in tracepoint.
 
 # Functions
 

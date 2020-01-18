@@ -274,6 +274,7 @@ Variables:
 - `curtask` - Current task_struct as a u64
 - `rand` - Random number of type u32
 - `$1`, `$2`, ... etc. - Positional parameters to the bpftrace program
+- `ctx` - BPF program context
 
 Functions:
 - `hist(int n)` - Produce a log2 histogram of values of `n`
