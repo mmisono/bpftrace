@@ -181,10 +181,10 @@ void CodegenLLVM::visit(Builtin &builtin)
       offset = arch::arg_offset(arg_num);
     }
 
-    expr_ = b_.CreateLoad(
-        b_.getInt64Ty(),
-        b_.CreateGEP(ctx_, b_.getInt64(offset * sizeof(uintptr_t))),
-        builtin.ident);
+    Value *addr = b_.CreateAdd(ctx_, b_.getInt64(offset * sizeof(uintptr_t)));
+    expr_ = b_.CreateLoad(b_.CreateIntToPtr(addr,
+                                            b_.getInt64Ty()->getPointerTo()),
+                          builtin.ident);
 
     if (builtin.type.type == Type::usym)
     {
@@ -209,10 +209,11 @@ void CodegenLLVM::visit(Builtin &builtin)
     }
 
     int arg_num = atoi(builtin.ident.substr(4).c_str());
+    Value *addr = b_.CreateAdd(ctx_,
+                               b_.getInt64(sp_offset * sizeof(uintptr_t)));
     Value *sp = b_.CreateLoad(
-        b_.getInt64Ty(),
-        b_.CreateGEP(ctx_, b_.getInt64(sp_offset * sizeof(uintptr_t))),
-        "reg_sp");
+        b_.CreateIntToPtr(addr, b_.getInt64Ty()->getPointerTo()), "reg_sp");
+
     AllocaInst *dst = b_.CreateAllocaBPF(builtin.type, builtin.ident);
     Value *src = b_.CreateAdd(sp, b_.getInt64((arg_num + 1) * sizeof(uintptr_t)));
     b_.CreateProbeRead(dst, 8, src);
@@ -610,10 +611,10 @@ void CodegenLLVM::visit(Call &call)
       abort();
     }
 
-    expr_ = b_.CreateLoad(
-        b_.getInt64Ty(),
-        b_.CreateGEP(ctx_, b_.getInt64(offset * sizeof(uintptr_t))),
-        call.func+"_"+reg_name);
+    Value *addr = b_.CreateAdd(ctx_, b_.getInt64(offset * sizeof(uintptr_t)));
+    expr_ = b_.CreateLoad(b_.CreateIntToPtr(addr,
+                                            b_.getInt64Ty()->getPointerTo()),
+                          call.func + "_" + reg_name);
   }
   else if (call.func == "printf")
   {
@@ -1467,7 +1468,7 @@ void CodegenLLVM::visit(Probe &probe)
     BasicBlock *entry = BasicBlock::Create(module_->getContext(), "entry", func);
     b_.SetInsertPoint(entry);
 
-    ctx_ = func->arg_begin();
+    ctx_ = b_.CreatePtrToInt(func->arg_begin(), b_.getInt64Ty());
 
     if (probe.pred) {
       probe.pred->accept(*this);
@@ -1546,7 +1547,7 @@ void CodegenLLVM::visit(Probe &probe)
         b_.SetInsertPoint(entry);
 
         // check: do the following 8 lines need to be in the wildcard loop?
-        ctx_ = func->arg_begin();
+        ctx_ = b_.CreatePtrToInt(func->arg_begin(), b_.getInt64Ty());
         if (probe.pred) {
           probe.pred->accept(*this);
         }

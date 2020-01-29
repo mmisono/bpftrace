@@ -348,7 +348,9 @@ Value *IRBuilderBPF::CreateUSDTReadArgument(Value *ctx, struct bcc_usdt_argument
   if (argument->valid & BCC_USDT_ARGUMENT_BASE_REGISTER_NAME) {
     int offset = 0;
     offset = arch::offset(argument->base_register_name);
-    Value* reg = CreateGEP(ctx, getInt64(offset * sizeof(uintptr_t)), "load_register");
+    Value *reg = CreateIntToPtr(
+        CreateAdd(ctx, getInt64(offset * sizeof(uintptr_t)), "load_register"),
+        getInt8PtrTy());
     AllocaInst *dst = CreateAllocaBPF(builtin.type, builtin.ident);
     CreateProbeRead(dst, builtin.type.size, reg);
     result = CreateLoad(dst);
@@ -622,6 +624,7 @@ CallInst *IRBuilderBPF::CreateGetStackId(Value *ctx, bool ustack, StackType stac
       Instruction::IntToPtr,
       getInt64(libbpf::BPF_FUNC_get_stackid),
       getstackid_func_ptr_type);
+  ctx = CreateIntToPtr(ctx, getInt8PtrTy());
   return CreateCall(getstackid_func, {ctx, map_ptr, flags_val}, "get_stackid");
 }
 
@@ -664,6 +667,7 @@ void IRBuilderBPF::CreatePerfEventOutput(Value *ctx, Value *data, size_t size)
       Instruction::IntToPtr,
       getInt64(libbpf::BPF_FUNC_perf_event_output),
       perfoutput_func_ptr_type);
+  ctx = CreateIntToPtr(ctx, getInt8PtrTy());
   CreateCall(perfoutput_func, {ctx, map_ptr, flags_val, data, size_val}, "perf_event_output");
 }
 
@@ -693,6 +697,7 @@ void IRBuilderBPF::CreateOverrideReturn(Value *ctx, Value *rc)
   Constant *override_func = ConstantExpr::getCast(Instruction::IntToPtr,
       getInt64(libbpf::BPF_FUNC_override_return),
       override_func_ptr_type);
+  ctx = CreateIntToPtr(ctx, getInt8PtrTy());
   CreateCall(override_func, { ctx, rc }, "override_return");
 }
 
