@@ -97,6 +97,12 @@ bool TracepointFormatParser::parse(ast::Program *program, BPFtrace &bpftrace)
             {
               program->c_definitions += get_tracepoint_struct(format_file, category, real_event);
               TracepointFormatParser::struct_list.insert(struct_name);
+              format_file.clear();
+              format_file.seekg(0, std::ios_base::beg);
+              auto struct_names = get_struct_name_in_tracepoint_struct(
+                  format_file);
+              bpftrace.btf_set_.insert(struct_names.begin(),
+                                       struct_names.end());
             }
           }
           globfree(&glob_result);
@@ -134,7 +140,14 @@ bool TracepointFormatParser::parse(ast::Program *program, BPFtrace &bpftrace)
           // Check to avoid adding the same struct more than once to definitions
           std::string struct_name = get_struct_name(category, event_name);
           if (TracepointFormatParser::struct_list.insert(struct_name).second)
+          {
             program->c_definitions += get_tracepoint_struct(format_file, category, event_name);
+            format_file.clear();
+            format_file.seekg(0, std::ios_base::beg);
+            auto struct_names = get_struct_name_in_tracepoint_struct(
+                format_file);
+            bpftrace.btf_set_.insert(struct_names.begin(), struct_names.end());
+          }
         }
       }
     }
@@ -148,7 +161,8 @@ std::string TracepointFormatParser::get_struct_name(const std::string &category,
 }
 
 std::string TracepointFormatParser::parse_field(const std::string &line,
-                                                int *last_offset)
+                                                int *last_offset,
+                                                const bool type_only)
 {
   std::string extra = "";
 
@@ -211,6 +225,9 @@ std::string TracepointFormatParser::parse_field(const std::string &line,
   if (field_name.find("[") == std::string::npos)
     field_type = adjust_integer_types(field_type, size);
 
+  if (type_only)
+    return field_type;
+
   return extra + "  " + field_type + " " + field_name + ";\n";
 }
 
@@ -243,6 +260,30 @@ std::string TracepointFormatParser::get_tracepoint_struct(std::istream &format_f
 
   format_struct += "};\n";
   return format_struct;
+}
+
+std::set<std::string> TracepointFormatParser::
+    get_struct_name_in_tracepoint_struct(std::istream &format_file)
+{
+  std::set<std::string> struct_names;
+
+  for (std::string line; getline(format_file, line);)
+  {
+    int last_offset = 0;
+    std::string type = parse_field(line, &last_offset, true);
+
+    // extract struct name from "[const] struct <name> [*]"
+    if (type.find("struct ") != 0 && (type.find("const struct ") != 0))
+      continue;
+    auto start = type.find("const ") == 0 ? strlen("const ") : 0;
+    auto end = type.find(" ", start + strlen("struct "));
+    std::string name = type.substr(start,
+                                   end == std::string::npos ? end
+                                                            : end - start);
+    struct_names.insert(name);
+  }
+
+  return struct_names;
 }
 
 } // namespace bpftrace
