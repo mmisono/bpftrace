@@ -201,7 +201,27 @@ static bool translateMacro(CXCursor cursor, std::string &name, std::string &valu
   return value.length() != 0;
 }
 
-static SizedType get_sized_type(CXType clang_type)
+static CXType remove_qualifiers(CXType clang_type, CXCursor &c)
+{
+  if (clang_isConstQualifiedType(clang_type) ||
+      clang_isRestrictQualifiedType(clang_type) ||
+      clang_isVolatileQualifiedType(clang_type))
+    clang_visitChildren(
+        c,
+        [](CXCursor c, CXCursor, CXClientData client_data) {
+          CXType &t = *(CXType *)client_data;
+          t = clang_getCanonicalType(clang_getCursorType(c));
+          if (clang_isConstQualifiedType(t) ||
+              clang_isRestrictQualifiedType(t) ||
+              clang_isVolatileQualifiedType(t))
+            return CXChildVisit_Recurse;
+          return CXChildVisit_Break;
+        },
+        &clang_type);
+  return clang_type;
+}
+
+static SizedType get_sized_type(CXType clang_type, CXCursor &c)
 {
   auto size = clang_Type_getSizeOf(clang_type);
   auto typestr = get_clang_string(clang_getTypeSpelling(clang_type));
@@ -217,7 +237,11 @@ static SizedType get_sized_type(CXType clang_type)
     case CXType_ULongLong:
       return SizedType(Type::integer, size);
     case CXType_Record:
+    {
+      auto type = remove_qualifiers(clang_type, c);
+      auto typestr = get_clang_string(clang_getTypeSpelling(type));
       return SizedType(Type::cast, size, typestr);
+    }
     case CXType_Char_S:
     case CXType_SChar:
     case CXType_Short:
@@ -233,7 +257,8 @@ static SizedType get_sized_type(CXType clang_type)
       SizedType type;
       if (pointee_type.kind == CXType_Record)
       {
-        auto pointee_typestr = get_clang_string(clang_getTypeSpelling(pointee_type));
+        auto pointee_typestr = get_clang_string(
+            clang_getTypeSpelling(remove_qualifiers(pointee_type, c)));
         type = SizedType(Type::cast, sizeof(uintptr_t), pointee_typestr);
       }
       else
@@ -257,7 +282,7 @@ static SizedType get_sized_type(CXType clang_type)
       // Only support one-dimensional arrays for now
       if (elem_type.kind != CXType_ConstantArray)
       {
-        auto type = get_sized_type(elem_type);
+        auto type = get_sized_type(elem_type, c);
         auto sized_type = SizedType(Type::array, size);
         sized_type.pointee_size = type.size;
         sized_type.elem_type = type.type;
@@ -369,19 +394,19 @@ bool ClangParser::visit_children(CXCursor &cursor, BPFtrace &bpftrace)
           // Warn if we already have the struct member defined and is
           // different type and keep the current definition in place.
           if (structs.count(ptypestr) != 0 &&
-              structs[ptypestr].fields.count(ident)    != 0 &&
-              structs[ptypestr].fields[ident].offset   != offset &&
-              structs[ptypestr].fields[ident].type     != get_sized_type(type) &&
+              structs[ptypestr].fields.count(ident) != 0 &&
+              structs[ptypestr].fields[ident].offset != offset &&
+              structs[ptypestr].fields[ident].type != get_sized_type(type, c) &&
               structs[ptypestr].fields[ident].is_bitfield && is_bitfield &&
               structs[ptypestr].fields[ident].bitfield != bitfield &&
-              structs[ptypestr].size                   != ptypesize)
+              structs[ptypestr].size != ptypesize)
           {
             std::cerr << "type mismatch for " << ptypestr << "::" << ident << std::endl;
           }
           else
           {
             structs[ptypestr].fields[ident].offset = offset;
-            structs[ptypestr].fields[ident].type = get_sized_type(type);
+            structs[ptypestr].fields[ident].type = get_sized_type(type, c);
             structs[ptypestr].fields[ident].is_bitfield = is_bitfield;
             structs[ptypestr].fields[ident].bitfield = bitfield;
             structs[ptypestr].size = ptypesize;
