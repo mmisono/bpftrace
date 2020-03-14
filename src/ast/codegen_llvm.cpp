@@ -1150,6 +1150,19 @@ void CodegenLLVM::visit(FieldAccess &acc)
   assert(type.type == Type::cast || type.type == Type::ctx);
   acc.expr->accept(*this);
 
+  if (type.is_kfarg)
+  {
+    Value *ctx = b_.CreatePointerCast(ctx_, b_.getInt64Ty()->getPointerTo());
+    expr_ = b_.CreateLoad(b_.getInt64Ty(),
+                          b_.CreateGEP(ctx, b_.getInt64(acc.type.kfarg_idx)),
+                          acc.field);
+
+    // LLVM 7.0 <= does not have CreateLoad(*Ty, *Ptr, isVolatile, Name),
+    // so call setVolatile() manually
+    dyn_cast<LoadInst>(expr_)->setVolatile(true);
+    return;
+  }
+
   std::string cast_type = type.is_tparg ? tracepoint_struct_ : type.cast_type;
   Struct &cstruct = bpftrace_.structs_[cast_type];
 
