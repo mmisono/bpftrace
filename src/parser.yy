@@ -195,7 +195,16 @@ pred : DIV expr ENDPRED { $$ = new ast::Predicate($2, @$); driver.count(); }
 ternary : expr QUES expr COLON expr { $$ = new ast::Ternary($1, $3, $5, @$); driver.count(); }
      ;
 
-param : PARAM      { $$ = new ast::PositionalParameter(PositionalParameterType::positional, std::stoll($1.substr(1, $1.size()-1)), @$); driver.count(); }
+param : PARAM      {
+                     try {
+                       $$ = new ast::PositionalParameter(PositionalParameterType::positional, std::stol($1.substr(1, $1.size()-1)), @$);
+                       driver.count();
+                     } catch (std::exception const& e) {
+                       error(@1, "param " + $1 + " is out of integer range [1, " +
+                             std::to_string(std::numeric_limits<long>::max()) + "]");
+                       YYERROR;
+                     }
+                   }
       | PARAMCOUNT { $$ = new ast::PositionalParameter(PositionalParameterType::count, 0, @$); driver.count(); }
       ;
 
