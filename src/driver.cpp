@@ -36,6 +36,7 @@ int Driver::parse_str(std::string script)
 int Driver::parse()
 {
   // Reset source location info on every pass
+  node_count_ = 0;
   loc.initialize();
   yy_scan_string(bpftrace_.source().c_str(), scanner_);
   parser_->parse();

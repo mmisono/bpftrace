@@ -390,6 +390,12 @@ int main(int argc, char *argv[])
     err = driver.parse();
     if (err)
       return err;
+#ifdef FUZZ
+    if (bt_verbose)
+      std::cerr << "node_count: " << driver.node_count_ << std::endl;
+    if (driver.node_count_ > 100)
+      return 0;
+#endif
 
     optind++;
   }
@@ -400,6 +406,12 @@ int main(int argc, char *argv[])
     err = driver.parse();
     if (err)
       return err;
+#ifdef FUZZ
+    if (bt_verbose)
+      std::cerr << "node_count: " << driver.node_count_ << std::endl;
+    if (driver.node_count_ > 100)
+      return 0;
+#endif
   }
 
   if (!is_root())

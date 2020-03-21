@@ -18,6 +18,10 @@ class Driver
 public:
   explicit Driver(BPFtrace &bpftrace, std::ostream &o = std::cerr);
   ~Driver();
+  void count()
+  {
+    node_count_ += 1;
+  }
 
   int parse();
   int parse_str(std::string script);
@@ -28,6 +32,7 @@ public:
   ast::Program *root_{ nullptr };
 
   BPFtrace &bpftrace_;
+  long node_count_;
 
 private:
   std::unique_ptr<Parser> parser_;
