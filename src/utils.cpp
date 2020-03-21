@@ -42,15 +42,22 @@ std::vector<int> read_cpu_range(std::string path)
 
 std::vector<std::string> expand_wildcard_path(const std::string& path)
 {
+  std::vector<std::string> matching_paths;
   glob_t glob_result;
   memset(&glob_result, 0, sizeof(glob_result));
+
+#ifdef FUZZ
+  if (std::count(path.begin(), path.end(), '/') > 100)
+  {
+    return matching_paths;
+  }
+#endif
 
   if (glob(path.c_str(), GLOB_NOCHECK, nullptr, &glob_result)) {
     globfree(&glob_result);
     throw std::runtime_error("glob() failed");
   }
 
-  std::vector<std::string> matching_paths;
   for (size_t i = 0; i < glob_result.gl_pathc; ++i) {
     matching_paths.push_back(std::string(glob_result.gl_pathv[i]));
   }
