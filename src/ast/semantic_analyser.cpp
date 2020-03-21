@@ -1728,12 +1728,14 @@ int SemanticAnalyser::analyse()
 {
   // Multiple passes to handle variables being used before they are defined
   std::string errors;
+  bpftrace_.error_cnt_ = 0;
 
   for (pass_ = 1; pass_ <= num_passes_; pass_++) {
     root_->accept(*this);
     errors = err_.str();
-    if (!errors.empty()) {
-      out_ << errors;
+    if (bpftrace_.error_cnt_ > 0) {
+      if (!errors.empty())
+        out_ << errors;
       return pass_;
     }
   }

@@ -58,7 +58,11 @@ void Driver::error(const location &l, const std::string &m)
 
 void Driver::error(const std::string &m)
 {
+#ifndef FUZZ
   out_ << m << std::endl;
+#else
+  (void)m;
+#endif
   failed_ = true;
 }
 

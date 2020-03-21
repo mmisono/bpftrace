@@ -149,7 +149,9 @@ usdt_probe_list USDTHelper::probes_for_provider(const std::string &provider)
   usdt_probe_list probes;
 
   if(!provider_cache_loaded) {
+#ifndef FUZZ
     std::cerr << "cannot read probes by provider before providers have been loaded by pid or path." << std::endl;
+#endif
     return probes;
   }
 
@@ -189,10 +191,12 @@ void USDTHelper::read_probes_for_pid(int pid)
   if (pid > 0) {
     void *ctx = bcc_usdt_new_frompid(pid, nullptr);
     if (ctx == nullptr) {
+#ifndef FUZZ
       std::cerr << "failed to initialize usdt context for pid: " << pid << std::endl;
       if (kill(pid, 0) == -1 && errno == ESRCH) {
         std::cerr << "hint: process not running" << std::endl;
       }
+#endif
       return;
     }
     bcc_usdt_foreach(ctx, usdt_probe_each);
@@ -200,7 +204,9 @@ void USDTHelper::read_probes_for_pid(int pid)
 
     provider_cache_loaded = true;
   } else {
+#ifndef FUZZ
     std::cerr << "a pid must be specified to list USDT probes by PID" << std::endl;
+#endif
   }
 }
 
@@ -211,7 +217,9 @@ void USDTHelper::read_probes_for_path(const std::string &path)
 
   void *ctx = bcc_usdt_new_frompath(path.c_str());
   if (ctx == nullptr) {
+#ifndef FUZZ
     std::cerr << "failed to initialize usdt context for path " << path << std::endl;
+#endif
     return;
   }
   bcc_usdt_foreach(ctx, usdt_probe_each);
@@ -227,7 +235,9 @@ bool get_uint64_env_var(const std::string &str, uint64_t &dest)
     std::istringstream stringstream(env_p);
     if (!(stringstream >> dest))
     {
+#ifndef FUZZ
       std::cerr << "Env var '" << str << "' did not contain a valid uint64_t, or was zero-valued." << std::endl;
+#endif
       return false;
     }
   }
@@ -519,8 +529,10 @@ const std::string &is_deprecated(const std::string &str)
     {
       if (item->show_warning)
       {
+#ifndef FUZZ
         std::cerr << "warning: " << item->old_name << " is deprecated and will be removed in the future. ";
         std::cerr << "Use " << item->new_name << " instead." << std::endl;
+#endif
         item->show_warning = false;
       }
 
@@ -730,8 +742,10 @@ void cat_file(const char *filename, size_t max_bytes, std::ostream &out)
   const size_t BUFSIZE = 4096;
 
   if (file.fail()){
+#ifndef FUZZ
     std::cerr << "Error opening file '" << filename << "': ";
     std::cerr << strerror(errno) << std::endl;
+#endif
     return;
   }
 
@@ -747,8 +761,10 @@ void cat_file(const char *filename, size_t max_bytes, std::ostream &out)
       return;
     }
     if (file.fail()) {
+#ifndef FUZZ
       std::cerr << "Error opening file '" << filename << "': ";
       std::cerr << strerror(errno) << std::endl;
+#endif
       return;
     }
     bytes_read += file.gcount();

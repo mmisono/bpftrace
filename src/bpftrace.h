@@ -157,6 +157,7 @@ public:
   bool cache_user_symbols_ = true;
   bool safe_mode_ = true;
   bool force_btf_ = false;
+  int error_cnt_ = 0;
 
   static void sort_by_key(
       std::vector<SizedType> key_args,

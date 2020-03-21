@@ -578,6 +578,10 @@ int main(int argc, char *argv[])
   if (err)
     return err;
 
+#ifdef FUZZ_PARSER
+  return 0;
+#endif
+
   if (bpftrace.has_child_cmd() && (bpftrace.spawn_child() < 0))
     return 1;
 
@@ -587,6 +591,10 @@ int main(int argc, char *argv[])
 
   ast::CodegenLLVM llvm(driver.root_, bpftrace);
   auto bpforc = llvm.compile(bt_debug);
+
+#ifdef FUZZ
+  return 0;
+#endif
 
   if (bt_debug != DebugLevel::kNone)
     return 0;

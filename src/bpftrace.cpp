@@ -2024,6 +2024,11 @@ void BPFtrace::error(std::ostream &out, const location &l, const std::string &m)
 
 void BPFtrace::log_with_location(std::string level, std::ostream &out, const location &l, const std::string &m)
 {
+  error_cnt_ += 1;
+#ifdef FUZZ
+  return;
+#endif
+
   if (filename_ != "") {
     out << filename_ << ":";
   }
