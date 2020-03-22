@@ -133,7 +133,7 @@ int BPFtrace::add_probe(ast::Probe &p)
       {
         matches = find_wildcard_matches(*attach_point);
       }
-      catch (const WildcardException &e)
+      catch (const std::exception &e)
       {
         std::cerr << e.what() << std::endl;
         return 1;
@@ -149,10 +149,18 @@ int BPFtrace::add_probe(ast::Probe &p)
       int err = resolve_uname(attach_point->func, &sym, attach_point->target);
       if (err < 0 || sym.address == 0)
       {
-        // As the C++ language supports function overload, a given function name
-        // (without parameters) could have multiple matches even when no
-        // wildcards are used.
-        matches = find_symbol_matches(*attach_point);
+        try
+        {
+          // As the C++ language supports function overload, a given function
+          // name (without parameters) could have multiple matches even when no
+          // wildcards are used.
+          matches = find_symbol_matches(*attach_point);
+        }
+        catch (const std::exception &e)
+        {
+          std::cerr << e.what() << std::endl;
+          return 1;
+        }
         attach_funcs.insert(attach_funcs.end(), matches.begin(), matches.end());
       }
       else
