@@ -1198,6 +1198,7 @@ void SemanticAnalyser::visit(Ternary &ternary)
   ternary.cond->accept(*this);
   ternary.left->accept(*this);
   ternary.right->accept(*this);
+  Type &cond = ternary.cond->type.type;
   Type &lhs = ternary.left->type.type;
   Type &rhs = ternary.right->type.type;
   if (is_final_pass()) {
@@ -1207,6 +1208,8 @@ void SemanticAnalyser::visit(Ternary &ternary)
               << "and '" << rhs << "'",
           ternary.loc);
     }
+    if (cond != Type::integer)
+      ERR("Invalid condition in ternary: " << cond, ternary.loc);
   }
   if (lhs == Type::string)
     ternary.type = SizedType(lhs, STRING_SIZE);
