@@ -2000,7 +2000,10 @@ std::unique_ptr<BpfOrc> CodegenLLVM::compile(DebugLevel debug, std::ostream &out
   std::string error;
   const Target *target = TargetRegistry::lookupTarget(targetTriple, error);
   if (!target)
-    throw new std::runtime_error("Could not create LLVM target " + error);
+  {
+    std::cerr << "Could not create LLVM target " << error << std::endl;
+    return nullptr;
+  }
 
   TargetOptions opt;
   auto RM = Reloc::Model();
@@ -2010,7 +2013,15 @@ std::unique_ptr<BpfOrc> CodegenLLVM::compile(DebugLevel debug, std::ostream &out
 
   createLog2Function();
   createLinearFunction();
-  root_->accept(*this);
+  try
+  {
+    root_->accept(*this);
+  }
+  catch (const std::exception &e)
+  {
+    std::cerr << "Codegen error: " << e.what() << std::endl;
+    return nullptr;
+  }
 
   legacy::PassManager PM;
   PassManagerBuilder PMB;

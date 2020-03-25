@@ -603,6 +603,8 @@ int main(int argc, char *argv[])
 
   ast::CodegenLLVM llvm(driver.root_, bpftrace);
   auto bpforc = llvm.compile(bt_debug);
+  if (bpforc == nullptr)
+    return 1;
 
 #ifdef FUZZ
   return 0;
