@@ -1854,7 +1854,10 @@ int SemanticAnalyser::create_maps(bool debug)
         failed_maps += is_invalid_map(bpftrace_.maps_[map_name]->mapfd_);
       }
       else
+      {
         bpftrace_.maps_[map_name] = std::make_unique<bpftrace::Map>(map_name, type, key, bpftrace_.mapmax_);
+        failed_maps += is_invalid_map(bpftrace_.maps_[map_name]->mapfd_);
+      }
     }
   }
 
