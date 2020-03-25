@@ -1142,6 +1142,8 @@ void SemanticAnalyser::visit(Binop &binop)
                  << ", " << rhs,
           binop.loc);
     }
+    else if (lhs == Type::none || rhs == Type::none)
+      ERR("Invalid operand: " << lhs << ", " << rhs, binop.loc)
   }
 
   bool is_signed = lsign && rsign;
