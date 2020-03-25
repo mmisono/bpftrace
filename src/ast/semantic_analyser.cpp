@@ -410,6 +410,7 @@ void SemanticAnalyser::visit(Call &call)
     bool sign = false;
     check_assignment(call, true, false, false);
     if (check_nargs(call, 1)) {
+      check_arg(call, Type::integer, 0);
       sign = call.vargs->at(0)->type.is_signed;
     }
     call.type = SizedType(Type::sum, 8, sign);
@@ -418,6 +419,7 @@ void SemanticAnalyser::visit(Call &call)
     bool sign = false;
     check_assignment(call, true, false, false);
     if (check_nargs(call, 1)) {
+      check_arg(call, Type::integer, 0);
       sign = call.vargs->at(0)->type.is_signed;
     }
     call.type = SizedType(Type::min, 8, sign);
@@ -426,6 +428,7 @@ void SemanticAnalyser::visit(Call &call)
     bool sign = false;
     check_assignment(call, true, false, false);
     if (check_nargs(call, 1)) {
+      check_arg(call, Type::integer, 0);
       sign = call.vargs->at(0)->type.is_signed;
     }
     call.type = SizedType(Type::max, 8, sign);
@@ -433,11 +436,13 @@ void SemanticAnalyser::visit(Call &call)
   else if (call.func == "avg") {
     check_assignment(call, true, false, false);
     check_nargs(call, 1);
+    check_arg(call, Type::integer, 0);
     call.type = SizedType(Type::avg, 8, true);
   }
   else if (call.func == "stats") {
     check_assignment(call, true, false, false);
     check_nargs(call, 1);
+    check_arg(call, Type::integer, 0);
     call.type = SizedType(Type::stats, 8, true);
   }
   else if (call.func == "delete") {
