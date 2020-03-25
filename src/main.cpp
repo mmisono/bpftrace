@@ -92,7 +92,7 @@ static void enforce_infinite_rlimit() {
         "\"ulimit -l 8192\" to fix the problem" << std::endl;
 }
 
-#ifdef BUILD_ASAN
+#if defined(BUILD_ASAN) || defined(FUZZ)
 static void cap_memory_limits()
 {
 }
