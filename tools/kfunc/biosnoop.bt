@@ -1,0 +1,44 @@
+#!/usr/bin/env bpftrace
+/*
+ * biosnoop.bt   Block I/O tracing tool, showing per I/O latency.
+ *               For Linux, uses bpftrace, eBPF.
+ *
+ * TODO: switch to block tracepoints. Add device, offset, and size columns.
+ *
+ * This is a bpftrace version of the bcc tool of the same name.
+ *
+ * 15-Nov-2017	Brendan Gregg	Created this.
+ * 31-Mar-2020	Masanori Misono	Adapted for kfunc
+ */
+
+BEGIN
+{
+	printf("%-12s %-16s %-6s %7s\n", "TIME(ms)", "COMM", "PID", "LAT(ms)");
+}
+
+kfunc:blk_account_io_start
+{
+	@start[args->rq] = nsecs;
+	@iopid[args->rq] = pid;
+	@iocomm[args->rq] = comm;
+}
+
+kfunc:blk_account_io_done
+/@start[args->req] != 0 && @iopid[args->req] != 0 && @iocomm[args->req] != ""/
+{
+	$now = nsecs;
+	printf("%-12u %-16s %-6d %7d\n",
+	    elapsed / 1000000, @iocomm[args->req], @iopid[args->req],
+	    ($now - @start[args->req]) / 1000000);
+
+	delete(@start[args->req]);
+	delete(@iopid[args->req]);
+	delete(@iocomm[args->req]);
+}
+
+END
+{
+	clear(@start);
+	clear(@iopid);
+	clear(@iocomm);
+}
