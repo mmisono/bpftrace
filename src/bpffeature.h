@@ -4,11 +4,6 @@
 #include <memory>
 #include <string>
 
-namespace libbpf {
-#undef __BPF_FUNC_MAPPER
-#include "libbpf/bpf.h"
-} // namespace libbpf
-
 namespace bpftrace {
 
 #define DEFINE_MAP_TEST(var, maptype)                                          \
@@ -32,7 +27,7 @@ public:                                                                        \
   {                                                                            \
     if (!has_##name##_)                                                        \
       has_##name##_ = std::make_unique<bool>(                                  \
-          detect_helper(libbpf::BPF_FUNC_##name, (progtype)));                 \
+          detect_helper(BPF_FUNC_##name, (progtype)));                         \
     return *(has_##name##_).get();                                             \
   }
 
@@ -94,8 +89,7 @@ protected:
 
 private:
   bool detect_map(enum bpf_map_type map_type);
-  bool detect_helper(enum libbpf::bpf_func_id func_id,
-                     enum bpf_prog_type prog_type);
+  bool detect_helper(enum bpf_func_id func_id, enum bpf_prog_type prog_type);
   bool detect_prog_type(enum bpf_prog_type prog_type);
 };
 

@@ -51,7 +51,7 @@ static bool try_load(bpf_prog_type prog_type,
   return try_load(nullptr, prog_type, insns, len, 0, logbuf, log_size);
 }
 
-bool BPFfeature::detect_helper(enum libbpf::bpf_func_id func_id,
+bool BPFfeature::detect_helper(enum bpf_func_id func_id,
                                enum bpf_prog_type prog_type)
 {
   // Stolen from libbpf's  bpf_probe_helper
