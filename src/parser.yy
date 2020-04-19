@@ -116,7 +116,7 @@ void yyerror(bpftrace::Driver &driver, const char *s);
 %type <ast::Ternary *> ternary
 %type <ast::StatementList *> block stmts block_or_if
 %type <ast::Statement *> if_stmt block_stmt stmt semicolon_ended_stmt compound_assignment
-%type <ast::Expression *> expr
+%type <ast::Expression *> expr int_or_param
 %type <ast::Call *> call
 %type <ast::Map *> map
 %type <ast::Variable *> var
@@ -220,7 +220,7 @@ stmts : semicolon_ended_stmt stmts { $$ = $2; $2->insert($2->begin(), $1); }
       ;
 
 block_stmt : if_stmt                  { $$ = $1; }
-           | UNROLL "(" INT ")" block { $$ = new ast::Unroll($3, $5); }
+           | UNROLL "(" int_or_param ")" block { $$ = new ast::Unroll($3, $5, @1 + @4); }
            ;
 
 if_stmt : IF "(" expr ")" block                  { $$ = new ast::If($3, $5); }
@@ -262,6 +262,10 @@ compound_assignment : map LEFTASSIGN expr  { $$ = new ast::AssignMapStatement($1
 int : MINUS INT    { $$ = new ast::Integer(-1 * $2, @$); }
     | INT          { $$ = new ast::Integer($1, @$); }
     ;
+
+int_or_param : INT   { $$ = new ast::Integer($1, @$); }
+             | param { $$ = $1;}
+             ;
 
 expr : int                                      { $$ = $1; }
      | STRING                                   { $$ = new ast::String($1, @$); }
