@@ -791,6 +791,24 @@ TEST(semantic_analyser, call_stack)
   test("kprobe:f { @x = 3; ustack(perf, @x) }", 10);
 }
 
+TEST(semantic_analyser, call_path)
+{
+  BPFfeature feature;
+  int result = feature.has_d_path() ? 0 : 1;
+
+  test("kfunc:filp_close { $k = path( args->filp->f_path ) }", result);
+  test("kretfunc:fget { $k = path( retval->f_path ) }", result);
+  test("kprobe:f { $k = path( arg0 ) }", 1);
+  test("kretprobe:f { $k = path( arg0 ) }", 1);
+  test("tracepoint:category:event { $k = path( NULL ) }", 1);
+  test("kprobe:f { $k = path( arg0 ) }", 1);
+  test("kretprobe:f{ $k = path( \"abc\" ) }", 1);
+  test("tracepoint:category:event { $k = path( -100 ) }", 1);
+  test("uprobe:/bin/bash:f { $k = path( arg0 ) }", 1);
+  test("BEGIN { $k = path( 1 ) }", 1);
+  test("END { $k = path( 1 ) }", 1);
+}
+
 TEST(semantic_analyser, map_reassignment)
 {
   test("kprobe:f { @x = 1; @x = 2; }", 0);
