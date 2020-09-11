@@ -217,6 +217,15 @@ jobs:
         --entrypoint /bin/bash
         bpftrace-embedded-${{ matrix.env['BASE'] }}
         -c "strip --keep-symbol BEGIN_trigger --keep-symbol END_trigger $(pwd)/build-embedded/src/bpftrace"
+    - name: Allow executable permission
+      env: ${{ matrix.env }}
+      run: >
+        docker run --privileged
+        -v $(pwd):$(pwd)
+        -w $(pwd)
+        --entrypoint /bin/bash
+        bpftrace-embedded-${{ matrix.env['BASE'] }}
+        -c "chmod 755 $(pwd)/build-embedded/src/bpftrace"
 
     - uses: actions/upload-artifact@v1
       with:
