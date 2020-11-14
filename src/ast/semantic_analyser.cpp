@@ -603,6 +603,17 @@ void SemanticAnalyser::visit(Call &call)
         }
       }
 
+      if (call.vargs->size() == 2)
+      {
+        auto &size_arg = *call.vargs->at(1);
+        long value = static_cast<Integer &>(size_arg).n;
+        if (value < 0)
+        {
+          LOG(ERROR, call.loc, err_)
+              << call.func << "(): cannot be used negative length";
+        }
+      }
+
       // Required for cases like strncmp(str($1), str(2), 4))
       call.type.SetAS(t.GetAS());
       if (is_final_pass() && call.vargs->size() > 1) {
@@ -644,7 +655,15 @@ void SemanticAnalyser::visit(Call &call)
 
       auto &size_arg = *call.vargs->at(1);
       if (size_arg.is_literal)
-        buffer_size = static_cast<Integer &>(size_arg).n;
+      {
+        long value = static_cast<Integer &>(size_arg).n;
+        if (value < 0)
+        {
+          LOG(ERROR, call.loc, err_)
+              << call.func << "(): cannot be used negative length";
+        }
+        buffer_size = value;
+      }
     }
 
     if (buffer_size > max_buffer_size)
