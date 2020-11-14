@@ -401,7 +401,11 @@ int FieldAnalyser::analyse()
   std::string errors = err_.str();
   if (!errors.empty())
   {
+#ifdef FUZZ
+    (void)out_;
+#else
     out_ << errors;
+#endif
     return 1;
   }
 

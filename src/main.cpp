@@ -878,31 +878,23 @@ int main(int argc, char *argv[])
   return 0;
 }
 
-#else
+#else // FUZZ
 
 #if !defined(NODE_MAX)
 #define NODE_MAX 200
 #endif
+int fuzz_main(const char* data, size_t sz);
 
+#ifdef LIBFUZZER
+// libfuzzer.a provices main function
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t sz)
+{
+  fuzz_main((const char*)data, sz);
+  return 0; // Non-zero return values are reserved for future use.
+}
+#else
 int main(int argc, char* argv[])
 {
-  // unused functions;
-  (void)enforce_infinite_rlimit;
-  (void)info;
-  (void)get_boottime;
-
-  if (!is_root())
-    return 1;
-
-  std::unique_ptr<Output> output;
-  std::ostream* os = &std::cout;
-  output = std::make_unique<TextOutput>(*os);
-
-  BPFtrace bpftrace(std::move(output));
-  DISABLE_LOG(WARNING);
-  bpftrace.safe_mode_ = 0;
-
-  Driver driver(bpftrace);
   // Read inputs
   std::stringstream buf;
   std::string line;
@@ -911,7 +903,6 @@ int main(int argc, char* argv[])
     // Input from stdin (AFL's default)
     while (std::getline(std::cin, line))
       buf << line << std::endl;
-    driver.source("stdin", buf.str());
   }
   else
   {
@@ -921,8 +912,42 @@ int main(int argc, char* argv[])
     if (file.fail())
       return 1;
     buf << file.rdbuf();
-    driver.source(filename, buf.str());
   }
+  const auto& str = buf.str();
+  return fuzz_main(str.c_str(), str.size());
+}
+#endif // LIBFUZZER
+
+int fuzz_main(const char* data, size_t sz)
+{
+  // reset global states
+  TracepointFormatParser::clear_struct_list();
+
+  // unused functions;
+  (void)enforce_infinite_rlimit;
+  (void)info;
+  (void)get_boottime;
+
+  if (data == nullptr || sz == 0)
+    return 0;
+
+  if (!is_root())
+    return 1;
+
+  DISABLE_LOG(DEBUG);
+  DISABLE_LOG(INFO);
+  DISABLE_LOG(WARNING);
+
+  std::unique_ptr<Output> output;
+  std::ostream* os = &std::cout;
+  output = std::make_unique<TextOutput>(*os);
+
+  BPFtrace bpftrace(std::move(output));
+  bpftrace.safe_mode_ = 0;
+
+  Driver driver(bpftrace);
+  std::string script(data, sz);
+  driver.source("fuzz", script);
 
   // Create AST
   auto err = driver.parse();
@@ -1005,7 +1030,7 @@ int main(int argc, char* argv[])
   }
 
   // for debug
-  // LOG(INFO) << "ok";
+  // std::cout << "ok" << std::endl;
 
   return 0;
 }

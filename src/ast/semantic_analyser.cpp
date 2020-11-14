@@ -2471,7 +2471,9 @@ int SemanticAnalyser::analyse()
     root_->accept(*this);
     errors = err_.str();
     if (!errors.empty()) {
+#ifndef FUZZ
       out_ << errors;
+#endif
       return pass_;
     }
   }
