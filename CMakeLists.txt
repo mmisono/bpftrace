@@ -21,6 +21,7 @@ set(ENABLE_TEST_VALIDATE_CODEGEN ON CACHE BOOL "Run LLVM IR validation tests")
 set(BUILD_FUZZ OFF CACHE BOOL "Build bpftrace for fuzzing")
 set(USE_LIBFUZZER OFF CACHE BOOL "Use libfuzzer for fuzzing")
 set(FUZZ_TARGET "codegen" CACHE STRING "Fuzzing target")
+set(BITVISOR OFF CACHE BOOL "Build for BitVisort")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 

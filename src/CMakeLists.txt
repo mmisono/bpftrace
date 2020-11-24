@@ -40,6 +40,11 @@ add_executable(${BPFTRACE}
   ${MAIN_SRC}
 )
 
+if(BITVISOR)
+  message(STATUS "Build for BitVisor")
+  target_compile_options(${BPFTRACE} PUBLIC "-DBITVISOR")
+endif()
+
 if (BUILD_FUZZ)
   target_compile_options(${BPFTRACE} PUBLIC "-DFUZZ")
 
