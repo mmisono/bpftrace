@@ -85,6 +85,8 @@ int AttachPointParser::parse_attachpoint(AttachPoint &ap)
     case ProbeType::kfunc:
     case ProbeType::kretfunc:
       return kfunc_parser();
+    case ProbeType::bitvisor:
+      return bitvisor_parser();
     default:
       errs_ << "Unrecognized probe type: " << ap_->provider << std::endl;
       return 1;
@@ -583,6 +585,21 @@ int AttachPointParser::kfunc_parser()
     ap_->need_expansion = true;
 
   ap_->func = parts_[1];
+  return 0;
+}
+
+int AttachPointParser::bitvisor_parser()
+{
+  if (parts_.size() != 2)
+  {
+    errs_ << ap_->provider << " probe type requires 1 argument" << std::endl;
+    return 1;
+  }
+
+  if (parts_[1].find('*') != std::string::npos)
+    LOG(ERROR, ap_->loc, sink_) << "wildcard is currently not supported";
+
+  ap_->target = parts_[1];
   return 0;
 }
 

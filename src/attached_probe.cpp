@@ -76,7 +76,7 @@ bpf_prog_type progtype(ProbeType t)
       return static_cast<enum ::bpf_prog_type>(libbpf::BPF_PROG_TYPE_TRACING);
       break;
     case ProbeType::bitvisor:
-      return BPF_PROG_TYPE_TRACEPOINT; // Use tradepoint type
+      return BPF_PROG_TYPE_KPROBE; // Use kprobe type
     case ProbeType::invalid:
       LOG(FATAL) << "program type invalid";
   }
