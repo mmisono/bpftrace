@@ -9,8 +9,10 @@
 #include <iostream>
 #include <sstream>
 #include <sys/epoll.h>
+#include <tuple>
 
 #include <fcntl.h>
+#include <sys/mman.h>
 #include <sys/personality.h>
 #include <sys/prctl.h>
 #include <sys/stat.h>
@@ -38,6 +40,7 @@
 #include "resolve_cgroupid.h"
 #include "triggers.h"
 #include "utils.h"
+#include "vmcall.h"
 
 namespace libbpf {
 #define __BPF_NAME_FN(x) #x
@@ -1069,6 +1072,7 @@ int BPFtrace::run_special_probe(std::string name,
 
 int BPFtrace::run(std::unique_ptr<BpfOrc> bpforc)
 {
+#ifndef BITVISOR
   int epollfd = setup_perf_events();
   if (epollfd < 0)
     return epollfd;
@@ -1172,6 +1176,73 @@ int BPFtrace::run(std::unique_ptr<BpfOrc> bpforc)
 
   // Calls perf_reader_free() on all open perf buffers.
   open_perf_buffers_.clear();
+
+#else
+  exitsig_recv = false;
+  for (auto probe_ = probes_.begin(); probe_ != probes_.end(); ++probe_)
+  {
+    auto &probe = *probe_;
+    auto &bpforc_ = *bpforc;
+    std::string index_str = "_" + std::to_string(probe.index);
+    auto func = bpforc_.sections_.find("s_" + probe.name + index_str);
+    uint8_t *insns = std::get<0>(func->second);
+    int prog_len = std::get<1>(func->second);
+
+#if 1
+    std::cout << "prog_len: " << prog_len;
+    std::cout << "insns: ";
+    for (uint8_t i = 0; i < prog_len; i++)
+    {
+      printf("%02x ", *(insns + i));
+      if ((i + 1) % 8 == 0)
+        std::cout << std::endl;
+    }
+#endif
+
+    mlock(insns, prog_len);
+
+    // load bpf program
+    auto id = get_vmcall_id("trace_load_bpf");
+    if (id == 0)
+    {
+      LOG(FATAL) << "Faield to get trace_load_bpf vmcall";
+    }
+    call_vmm_arg_t arg = {};
+    arg.rax = id;
+    arg.rbx = (ull)insns;
+    arg.rcx = (ull)prog_len;
+    auto ret = vmcall(arg);
+    if (ret.rax != 0)
+    {
+      LOG(FATAL) << "Faield to load bpf program";
+    }
+    LOG(INFO) << "Loading bpf program suceeeded";
+    munlock(insns, prog_len);
+
+    // XXX: currently only support one program!
+    break;
+  }
+
+  while (!exitsig_recv)
+  {
+    sleep(1);
+  }
+
+  // unload bpf program
+  auto id = get_vmcall_id("trace_unload_bpf");
+  if (id == 0)
+  {
+    LOG(FATAL) << "Faield to get trace_unload_bpf vmcall";
+  }
+  call_vmm_arg_t arg = {};
+  arg.rax = id;
+  auto ret = vmcall(arg);
+  if (ret.rax != 0)
+  {
+    LOG(ERROR) << "Faield to unload bpf program";
+  }
+
+#endif // BITVISOR
 
   return 0;
 }

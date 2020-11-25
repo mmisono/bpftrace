@@ -767,6 +767,7 @@ int main(int argc, char *argv[])
   if (test_mode == TestMode::SEMANTIC)
     return 0;
 
+#ifdef BITVISOR
   err = semantics.create_maps(bt_debug != DebugLevel::kNone);
   if (err)
     return err;
@@ -783,6 +784,7 @@ int main(int argc, char *argv[])
       return -1;
     }
   }
+#endif
 
   ast::CodegenLLVM llvm(driver.root_, bpftrace);
   std::unique_ptr<BpfOrc> bpforc;
@@ -858,6 +860,7 @@ int main(int argc, char *argv[])
     bpftrace.out_->attached_probes(num_probes);
 
   err = bpftrace.run(move(bpforc));
+
   if (err)
     return err;
 

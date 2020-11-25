@@ -36,6 +36,7 @@ add_executable(${BPFTRACE}
   types.cpp
   usdt.cpp
   utils.cpp
+  vmcall.cpp
   ${BFD_DISASM_SRC}
   ${MAIN_SRC}
 )
