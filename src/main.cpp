@@ -29,6 +29,7 @@
 #include "procmon.h"
 #include "semantic_analyser.h"
 #include "tracepoint_format_parser.h"
+#include "vmcall.h"
 
 using namespace bpftrace;
 
@@ -872,6 +873,22 @@ int main(int argc, char *argv[])
   std::cout << "\n\n";
 
   err = bpftrace.print_maps();
+
+#if BITVISOR
+  // unload bpf program
+  auto id = get_vmcall_id("trace_unload_bpf");
+  if (id == 0)
+  {
+    LOG(FATAL) << "Faield to get trace_unload_bpf vmcall";
+  }
+  call_vmm_arg_t arg = {};
+  arg.rax = id;
+  auto ret = vmcall(arg);
+  if (ret.rax != 0)
+  {
+    LOG(ERROR) << "Faield to unload bpf program";
+  }
+#endif
 
   if (bt_verbose && bpftrace.child_)
   {

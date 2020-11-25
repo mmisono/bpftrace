@@ -1188,7 +1188,7 @@ int BPFtrace::run(std::unique_ptr<BpfOrc> bpforc)
     uint8_t *insns = std::get<0>(func->second);
     int prog_len = std::get<1>(func->second);
 
-#if 1
+#if 0
     std::cout << "prog_len: " << prog_len;
     std::cout << "insns: ";
     for (uint8_t i = 0; i < prog_len; i++)
@@ -1216,7 +1216,7 @@ int BPFtrace::run(std::unique_ptr<BpfOrc> bpforc)
     {
       LOG(FATAL) << "Faield to load bpf program";
     }
-    LOG(INFO) << "Loading bpf program suceeeded";
+    // LOG(INFO) << "Loading bpf program suceeeded";
     munlock(insns, prog_len);
 
     // XXX: currently only support one program!
@@ -1226,20 +1226,6 @@ int BPFtrace::run(std::unique_ptr<BpfOrc> bpforc)
   while (!exitsig_recv)
   {
     sleep(1);
-  }
-
-  // unload bpf program
-  auto id = get_vmcall_id("trace_unload_bpf");
-  if (id == 0)
-  {
-    LOG(FATAL) << "Faield to get trace_unload_bpf vmcall";
-  }
-  call_vmm_arg_t arg = {};
-  arg.rax = id;
-  auto ret = vmcall(arg);
-  if (ret.rax != 0)
-  {
-    LOG(ERROR) << "Faield to unload bpf program";
   }
 
 #endif // BITVISOR
@@ -1325,12 +1311,70 @@ void BPFtrace::poll_perf_events(int epollfd, bool drain)
 
 int BPFtrace::print_maps()
 {
+#ifndef BITVISOR
   for (auto &mapmap : maps)
   {
     int err = print_map(*mapmap.get(), 0, 0);
     if (err)
       return err;
   }
+#else
+
+#if 0
+  {
+    auto id = get_vmcall_id("trace_dump_hash_entries");
+    if (id == 0)
+    {
+      LOG(FATAL) << "Faield to get hash_get_count vmcall";
+    }
+    call_vmm_arg_t arg = {};
+    arg.rax = id;
+    auto ret = vmcall(arg);
+    if (ret.rax != 0)
+    {
+      LOG(FATAL) << "Faield to get hash entries";
+    }
+    return 0;
+  }
+#endif
+
+  auto id = get_vmcall_id("trace_get_hash_count");
+  if (id == 0)
+  {
+    LOG(FATAL) << "Faield to get hash_get_count vmcall";
+  }
+  call_vmm_arg_t arg = {};
+  arg.rax = id;
+  auto ret = vmcall(arg);
+  if (ret.rax != 0)
+  {
+    LOG(FATAL) << "Faield to get hash_count";
+  }
+  ull count = ret.rbx;
+  // LOG(INFO) << "Entry count: " << count;
+
+  id = get_vmcall_id("trace_get_hash_entry_by_idx");
+  if (id == 0)
+  {
+    LOG(FATAL) << "Faield to get hash_get_entry_by_idx vmcall";
+  }
+  arg.rax = id;
+  for (ull i = 0; i < count; i++)
+  {
+    arg.rbx = i;
+    ret = vmcall(arg);
+    if (ret.rax != 0)
+    {
+      LOG(FATAL) << "Faield to get hash_get_entry_by_idx";
+    }
+
+    auto key = ret.rbx;
+    auto value = ret.rcx;
+
+    printf("@[%lld] = %lld\n", key, value);
+  }
+
+#endif
 
   return 0;
 }
