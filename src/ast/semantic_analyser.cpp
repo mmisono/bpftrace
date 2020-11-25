@@ -331,9 +331,8 @@ void SemanticAnalyser::visit(Builtin &builtin)
     for (auto &attach_point : *probe_->attach_points)
     {
       ProbeType type = probetype(attach_point->provider);
-      if (type != ProbeType::kprobe &&
-          type != ProbeType::uprobe &&
-          type != ProbeType::usdt)
+      if (type != ProbeType::kprobe && type != ProbeType::uprobe &&
+          type != ProbeType::usdt && type != ProbeType::bitvisor)
         LOG(ERROR, builtin.loc, err_)
             << "The " << builtin.ident << " builtin can only be used with "
             << "'kprobes', 'uprobes' and 'usdt' probes";
@@ -2461,6 +2460,13 @@ void SemanticAnalyser::visit(AttachPoint &ap)
     else
     {
       LOG(ERROR, ap.loc, err_) << "Failed to resolve kfunc args.";
+    }
+  }
+  else if (ap.provider == "bitvisor")
+  {
+    if (ap.target != "vmexit")
+    {
+      LOG(ERROR, ap.loc, err_) << "Invalid target: " << ap.target;
     }
   }
   else {
