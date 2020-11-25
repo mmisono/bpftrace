@@ -230,6 +230,9 @@ std::string probetypeName(ProbeType t)
     case ProbeType::watchpoint:  return "watchpoint";  break;
     case ProbeType::kfunc:       return "kfunc";       break;
     case ProbeType::kretfunc:    return "kretfunc";    break;
+    case ProbeType::bitvisor:
+      return "bitvisor";
+      break;
   }
 
   return {}; // unreached

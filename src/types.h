@@ -405,6 +405,7 @@ enum class ProbeType
   watchpoint,
   kfunc,
   kretfunc,
+  bitvisor,
 };
 
 std::ostream &operator<<(std::ostream &os, ProbeType type);
@@ -416,8 +417,7 @@ struct ProbeItem
   ProbeType type;
 };
 
-const std::vector<ProbeItem> PROBE_LIST =
-{
+const std::vector<ProbeItem> PROBE_LIST = {
   { "kprobe", "k", ProbeType::kprobe },
   { "kretprobe", "kr", ProbeType::kretprobe },
   { "uprobe", "u", ProbeType::uprobe },
@@ -433,6 +433,7 @@ const std::vector<ProbeItem> PROBE_LIST =
   { "watchpoint", "w", ProbeType::watchpoint },
   { "kfunc", "f", ProbeType::kfunc },
   { "kretfunc", "fr", ProbeType::kretfunc },
+  { "bitvisor", "b", ProbeType::bitvisor },
 };
 
 ProbeType probetype(const std::string &type);

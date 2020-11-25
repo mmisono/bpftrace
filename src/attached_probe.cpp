@@ -75,6 +75,8 @@ bpf_prog_type progtype(ProbeType t)
     case ProbeType::kretfunc:
       return static_cast<enum ::bpf_prog_type>(libbpf::BPF_PROG_TYPE_TRACING);
       break;
+    case ProbeType::bitvisor:
+      return BPF_PROG_TYPE_TRACEPOINT; // Use tradepoint type
     case ProbeType::invalid:
       LOG(FATAL) << "program type invalid";
   }
@@ -228,6 +230,11 @@ AttachedProbe::~AttachedProbe()
       break;
     case ProbeType::tracepoint:
       err = bpf_detach_tracepoint(probe_.path.c_str(), eventname().c_str());
+      break;
+    case ProbeType::bitvisor:
+      // TODO:
+      // err = bpf_detach_bitvisor_tracepoint(probe_.path.c_str(),
+      // eventname().c_str());
       break;
     case ProbeType::profile:
     case ProbeType::interval:

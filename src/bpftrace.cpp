@@ -1039,6 +1039,7 @@ bool attach_reverse(const Probe &p)
     case ProbeType::interval:
     case ProbeType::watchpoint:
     case ProbeType::hardware:
+    case ProbeType::bitvisor:
       return false;
     case ProbeType::invalid:
       LOG(FATAL) << "Unknown probe type";
